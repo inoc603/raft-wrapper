@@ -39,9 +39,9 @@ func WithStorage(m Storage) RaftOption {
 	}
 }
 
-func WithStore(store Store) RaftOption {
+func WithCommitFunc(commitFunc func([]byte) error) RaftOption {
 	return func(r *RaftNode) error {
-		r.store = store
+		r.commit = commitFunc
 		return nil
 	}
 }

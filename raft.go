@@ -26,7 +26,7 @@ type RaftNode struct {
 
 	proposeLock sync.Mutex
 
-	store Store
+	commit func(data []byte) error
 }
 
 func NewRaftNode(opts ...RaftOption) (*RaftNode, error) {
@@ -117,7 +117,7 @@ func (r *RaftNode) Start() error {
 					if len(entry.Data) == 0 {
 						break
 					}
-					if err := r.store.Commit(entry.Data); err != nil {
+					if err := r.commit(entry.Data); err != nil {
 						return err
 					}
 				case raftpb.EntryConfChange:
@@ -153,11 +153,11 @@ func (r *RaftNode) IsIDRemoved(id uint64) bool {
 }
 
 func (r *RaftNode) ReportUnreachable(id uint64) {
-	logrus.WithField("id", id).Errorln("Unreachable")
+	r.node.ReportUnreachable(id)
 }
 
 func (r *RaftNode) ReportSnapshot(id uint64, status raft.SnapshotStatus) {
-	logrus.WithField("id", id).Errorln("Snapshot")
+	r.node.ReportSnapshot(id, status)
 }
 
 func init() {

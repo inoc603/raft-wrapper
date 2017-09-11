@@ -1,7 +1,6 @@
 package raft
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/coreos/etcd/raft"
@@ -11,12 +10,6 @@ import (
 	"github.com/coreos/etcd/wal/walpb"
 	"github.com/pkg/errors"
 )
-
-type Store interface {
-	GetSnapshot() ([]byte, error)
-	LoadSnapshot(data []byte) error
-	Commit(data []byte) error
-}
 
 type Storage interface {
 	raft.Storage
@@ -115,8 +108,7 @@ func (s *MemStorage) IsEmpty() bool {
 func (s *MemStorage) needSnapshot() bool {
 	lastIndex, _ := s.MemoryStorage.LastIndex()
 	snap, _ := s.Snapshot()
-	fmt.Println(lastIndex, snap.Metadata.Index)
-	return false
+	return lastIndex-snap.Metadata.Index > 1000
 }
 
 func openWAL(dir string, snapshot *raftpb.Snapshot) (*wal.WAL, error) {
@@ -129,7 +121,9 @@ func openWAL(dir string, snapshot *raftpb.Snapshot) (*wal.WAL, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to create wal")
 		}
-		w.Close()
+		if err := w.Close(); err != nil {
+			return nil, errors.Wrap(err, "failed to close wal")
+		}
 	}
 
 	walsnap := walpb.Snapshot{}
